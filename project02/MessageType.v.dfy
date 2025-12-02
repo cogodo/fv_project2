@@ -1,6 +1,6 @@
 module MessageType {
   datatype Message =
 /*{*/
-    | SomeMessage()  // Replace me
+    | SomeMessage()  // Replace me - single or batch kv pairs?
 /*}*/
 }

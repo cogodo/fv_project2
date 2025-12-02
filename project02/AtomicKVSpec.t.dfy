@@ -20,7 +20,7 @@ module AtomicKVSpec {
   datatype Constants = Constants()  // don't need any here
   datatype Variables = Variables(
   /*{*/
-    // define me
+    mp: imap<int, int>
   /*}*/
   )
 
@@ -28,7 +28,7 @@ module AtomicKVSpec {
   // Be sure to check out IMapHelpers.t.dfy. It's helpful.
   ghost predicate Init(c: Constants, v: Variables) {
   /*{*/
-    && true  // define me
+    && v.mp == ZeroMap()
   /*}*/
   }
 

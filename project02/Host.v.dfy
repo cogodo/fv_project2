@@ -37,7 +37,11 @@ module Host {
 /*{*/
   // Replace these definitions with more meaningful ones that capture the operations
   // of a key-value store described above.
-  datatype Constants = Constants()
-  datatype Variables = Variables()
+  datatype Constants = Constants(
+    
+  )
+  datatype Variables = Variables(
+    mp: map<int, int>
+  )
 /*}*/
 }

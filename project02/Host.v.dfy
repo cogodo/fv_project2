@@ -38,10 +38,27 @@ module Host {
   // Replace these definitions with more meaningful ones that capture the operations
   // of a key-value store described above.
   datatype Constants = Constants(
-    
+    id: HostId
   )
   datatype Variables = Variables(
     mp: map<int, int>
   )
+  
+  // TODO: Initially, host 0 should own all the keys
+  ghost predicate Init(c: Constants, v: Variables)
+  {
+    
+  }
+  
+  // TODO: Other Host Actons
+
+
+
+  // TODO: Next Step JNF
+  
+  
+  
+  datatype Step =
+    | 
 /*}*/
 }

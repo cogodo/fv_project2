@@ -1,6 +1,8 @@
 module MessageType {
   datatype Message =
 /*{*/
-    | SomeMessage()  // Replace me - single or batch kv pairs?
+    | Get(key: int, value: int)
+    | Put(key: int, value: int)
+    | KeyValue(key: int, value: int)
 /*}*/
 }

@@ -12,13 +12,20 @@ module DistributedSystem {
   type HostId = Network.HostId
 
 /*{*/
-  datatype Constants = Constants()
+  datatype Constants = Constants(
+    hosts: seq<Host.Constants>,
+    network: Network.Constants
+  )
   {
     ghost predicate WF() {
-      && true
+      && (forall i:nat | i < |hosts| :: hosts[i].totalHosts == |hosts|)
+      && (forall i:nat | i < |hosts| :: hosts[i].id == i)
     }
   }
-  datatype Variables = Variables()
+  datatype Variables = Variables(
+    hosts: seq<Host.Variables>,
+    network: Network.Variables
+  )
   {
     ghost predicate WF(c: Constants) {
       && true
@@ -32,7 +39,7 @@ module DistributedSystem {
 
   ghost predicate Next(c: Constants, v: Variables, v': Variables, event: Event)
   {
-    && true   // define me
+    true
   }
 /*}*/
 }

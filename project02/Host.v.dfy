@@ -38,27 +38,109 @@ module Host {
   // Replace these definitions with more meaningful ones that capture the operations
   // of a key-value store described above.
   datatype Constants = Constants(
-    id: HostId
+    id: HostId,
+    totalHosts: nat
   )
   datatype Variables = Variables(
     mp: map<int, int>
-  )
+  ) 
+  {
+    ghost predicate WF(c: Constants) {
+      c.id < c.totalHosts
+    }
+  }
+
+  datatype MessageOps = MessageOps(recv:Option<Message>, send:Option<Message>)
   
-  // TODO: Initially, host 0 should own all the keys
+  // Initially, host 0 should own all the keys
   ghost predicate Init(c: Constants, v: Variables)
   {
-    
+    && v.WF(c)
+    && if c.id == 0 then forall i:int :: i in v.mp && v.mp[i] == 0 else v.mp == map[]
   }
   
-  // TODO: Other Host Actons
-
-
-
-  // TODO: Next Step JNF
+  // Other Host Actons Sending the (Get, Put, KeyValue) Messages
   
+  ghost predicate IdxInMap(v: Variables, key: int)
+  {
+    key in v.mp
+  }
   
+  // Upon receiving a Get Message, handle returning the key's value
+  ghost predicate HandleGet(c: Constants, v: Variables, v': Variables, msgOps: MessageOps)
+  {
+    && v.WF(c)
+    && msgOps.recv.Some?
+    && var recvMsg := msgOps.recv.value;
+    && recvMsg.Get?
+    && IdxInMap(v, recvMsg.key)
+    && msgOps.send.Some?
+    && msgOps.send.value.value == v.mp[recvMsg.key]
+    && v == v'
+  }
   
+  // Upon receiving a Put Message, update the key to have new value
+  ghost predicate HandlePut(c: Constants, v: Variables, v': Variables, msgOps: MessageOps) 
+  {
+    && v.WF(c)
+    && msgOps.recv.Some?
+    && var recvMsg := msgOps.recv.value;
+    && recvMsg.Put?
+    && IdxInMap(v, recvMsg.key)
+    && v' == v.(mp := v.mp[recvMsg.key := recvMsg.value])
+    && msgOps.send.None?
+  }
+
+  // Send to host's current state for key, value and remove from host's map after send
+  ghost predicate SendToHost(c: Constants, v: Variables, v': Variables, msgOps: MessageOps) 
+  {
+    && v.WF(c)
+    && msgOps.recv.None?
+    && msgOps.send.Some?
+    && var sendMsg := msgOps.send.value;
+    && sendMsg.KeyValue?
+    && sendMsg.idx != c.id 
+    && sendMsg.idx < c.totalHosts
+    && IdxInMap(v, sendMsg.idx)
+    && v.mp[sendMsg.idx] == sendMsg.value
+    && v' == v.(mp := map i:int | i in v.mp && i != sendMsg.key :: v.mp[i])
+  }
+
+  // Receive a host's state, update/add our own map with new key, value
+  ghost predicate RecvFromHost(c: Constants, v: Variables, v': Variables, msgOps: MessageOps) 
+  {
+    && v.WF(c)
+    && msgOps.send.None?
+    && msgOps.recv.Some?
+    && var recvMsg := msgOps.recv.value;
+    && recvMsg.KeyValue?
+    && recvMsg.idx != c.id
+    && recvMsg.idx < c.totalHosts
+    && !(recvMsg.key in v.mp)
+    && var t := map[recvMsg.key := recvMsg.value];
+    && v' == v.(mp := v.mp + t)
+  }
+
+  // Next Step JNF
   datatype Step =
-    | 
+    | PutStep
+    | GetStep
+    | SendHostStep
+    | RecvHostStep
+
+  ghost predicate NextStep(c: Constants, v: Variables, v': Variables, msgOps: MessageOps, step: Step) 
+  {
+    match step {
+      case PutStep => HandlePut(c, v, v', msgOps)
+      case GetStep => HandleGet(c, v, v', msgOps)
+      case SendHostStep => SendToHost(c, v, v', msgOps)
+      case RecvHostStep => RecvFromHost(c, v, v', msgOps)
+    }
+  }
+  
+  ghost predicate Next(c: Constants, v: Variables, v': Variables, msgOps: MessageOps)
+  {
+    exists step :: NextStep(c, v, v', msgOps, step)
+  }
 /*}*/
 }

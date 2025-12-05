@@ -459,11 +459,11 @@ module RefinementProof refines RefinementObligation {
   {
 /*{*/
     // Create the imap from the host's imap HostMaps and msg's imap MessageMaps
-      if PartitionLayer(c, v).IsFullAndDisjoint() then
-        AtomicKVSpec.Variables(PartitionLayer(c, v).SpecView())
-      else
-      // will never execute if Inv is correct
-      AtomicKVSpec.Variables(ZeroMap())
+    if PartitionLayer(c, v).IsFullAndDisjoint() then
+      AtomicKVSpec.Variables(PartitionLayer(c, v).SpecView())
+    else
+    // will never execute if Inv is correct
+    AtomicKVSpec.Variables(ZeroMap())
 
 /*}*/
   }
@@ -488,6 +488,31 @@ module RefinementProof refines RefinementObligation {
     ensures AtomicKVSpec.Init(ConstantsAbstraction(c), VariablesAbstraction(c, v))
   {
 /*{*/
+    // assert Inv(c,v);
+    // assert v.WF(c);
+    // assert IsFull(v.hosts[0].mp);
+    // assert DistributedSystem.Init(c, v);
+    // assert v.network.inFlightMessages == {};
+    
+    // assert PartitionLayer(c,v).PartitionIsFull();
+    // assert PartitionLayer(c,v).IsFullAndDisjoint();
+    // PartitionLayer(c,v).SpecViewIsFull();
+    // assert Inv(c,v);
+
+    assert v.WF(c);
+    var part := PartitionLayer(c, v);
+    assert IsFull(v.hosts[0].mp);
+    assert forall key :: key in v.hosts[0].mp;
+    assert (forall i:nat | 0 < i < |v.hosts| :: v.hosts[i].mp == imap[]);
+    assert v.network.inFlightMessages == {};
+    var host0_owner := HostOwner(0);
+
+    // assert forall key :: SomeOwnerDefinesKey(temp, key);
+
+    assert part.PartitionIsFull();
+    assert part.IsFullAndDisjoint();
+    part.SpecViewIsFull();
+    assert Inv(c,v);
 /*}*/
   }
 

@@ -18,6 +18,7 @@ module DistributedSystem {
   )
   {
     ghost predicate WF() {
+      && |hosts| > 0
       && (forall i:nat | i < |hosts| :: hosts[i].totalHosts == |hosts|)
       && (forall i:nat | i < |hosts| :: hosts[i].id == i)
     }

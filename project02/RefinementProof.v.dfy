@@ -459,8 +459,12 @@ module RefinementProof refines RefinementObligation {
   {
 /*{*/
     // Create the imap from the host's imap HostMaps and msg's imap MessageMaps
-    
-    AtomicKVSpec.Variables(PartitionLayer(c, v).SpecView())
+      if PartitionLayer(c, v).IsFullAndDisjoint() then
+        AtomicKVSpec.Variables(PartitionLayer(c, v).SpecView())
+      else
+      // will never execute if Inv is correct
+      AtomicKVSpec.Variables(ZeroMap())
+
 /*}*/
   }
 
@@ -470,7 +474,8 @@ module RefinementProof refines RefinementObligation {
   ghost predicate Inv(c: Constants, v: Variables)
   {
 /*{*/
-    true // supply your invariant
+    && v.WF(c)
+    && PartitionLayer(c, v).IsFullAndDisjoint()
 /*}*/
   }
 

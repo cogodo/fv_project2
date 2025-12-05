@@ -44,48 +44,23 @@ module DistributedSystem {
   }
 
   // TODO: Figure out how to repesent "Host Actions" with events (Get, Put) --> Noop is sending key,value pair
-  ghost predicate HostAction(c: Constants, v: Variables, v': Variables, hostid: HostId)
+  ghost predicate HostAction(c: Constants, v: Variables, v': Variables, hostid: HostId, event: Event)
   {
-    true // fix me
+    && v.WF(c)
+    && v'.WF(c)
+    && hostid < |c.hosts|
+    && (exists msgOps ::
+      && Host.NextStep(c.hosts[hostid], v.hosts[hostid], v'.hosts[hostid], msgOps, event)
+      && Network.Next(c.network, v.network, v'.network, msgOps))
   }
 
-  // Handling Put to update the Host's Variables (key and value)
-  function PutVariableUpdate(c: Constants, v: Variables, v': Variables, evt: Event) : Variables
-  {
-    // From network, find the Put message (which has the key and value to update)
-    // TODO: can there be multiple Put message in network? Or can we assume there will be a put message at this point?
-    var msg :| msg in v.network.inFlightMessages && msg.Put?;
-    
-    // From our hosts, find host with that key
-    
-
-    // Update this host's key with new value with the Put evt
-    // HandlePut(c: Constants, v: Variables, v': Variables, msgOps: MessageOps) 
-
-    
-    v
-  }
-
-  // Handling a Noop event, which means hosts are sharing key and value with other host
-  function NoOpVariableUpdate(c: Constants, v: Variables, v': Variables, evt: Event) : Variables
-  {
-    v
-  }
-
-  function ApplyEvents(c: Constants, v: Variables, v': Variables, evt: Event): Variables
-  {
-    // TODO: FIX MEEE
-    match evt
-      case Get(key, val) => v
-      case Put(key, val) => PutVariableUpdate(c, v, v', evt)
-      case NoOp => NoOpVariableUpdate(c, v, v', evt)
-    
-  }
   // TODO: ask Ivan?
   // Represent next step --> step is now event tho....
   ghost predicate Next(c: Constants, v: Variables, v': Variables, event: Event)
   {
-    v' == ApplyEvents(c, v, v', event)
+    && v.WF(c)
+    && v'.WF(c)
+    && exists hostid :: HostAction(c, v, v', hostid, event)
   }
 /*}*/
 }

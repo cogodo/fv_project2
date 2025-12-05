@@ -49,8 +49,6 @@ module Host {
       c.id < c.totalHosts
     }
   }
-
-  datatype MessageOps = MessageOps(recv:Option<Message>, send:Option<Message>)
   
   // Initially, host 0 should own all the keys
   ghost predicate Init(c: Constants, v: Variables)
@@ -67,7 +65,7 @@ module Host {
   }
   
   // Upon receiving a Get Message, handle returning the key's value
-  ghost predicate HandleGet(c: Constants, v: Variables, v': Variables, msgOps: MessageOps)
+  ghost predicate HandleGet(c: Constants, v: Variables, v': Variables, msgOps: Network.MessageOps)
   {
     && v.WF(c)
     && msgOps.recv.Some?
@@ -80,7 +78,7 @@ module Host {
   }
   
   // Upon receiving a Put Message, update the key to have new value
-  ghost predicate HandlePut(c: Constants, v: Variables, v': Variables, msgOps: MessageOps) 
+  ghost predicate HandlePut(c: Constants, v: Variables, v': Variables, msgOps: Network.MessageOps) 
   {
     && v.WF(c)
     && msgOps.recv.Some?
@@ -92,7 +90,7 @@ module Host {
   }
 
   // Send to host's current state for key, value and remove from host's map after send
-  ghost predicate SendToHost(c: Constants, v: Variables, v': Variables, msgOps: MessageOps) 
+  ghost predicate SendToHost(c: Constants, v: Variables, v': Variables, msgOps: Network.MessageOps) 
   {
     && v.WF(c)
     && msgOps.recv.None?
@@ -108,7 +106,7 @@ module Host {
   }
 
   // Receive a host's state, update/add our own map with new key, value
-  ghost predicate RecvFromHost(c: Constants, v: Variables, v': Variables, msgOps: MessageOps) 
+  ghost predicate RecvFromHost(c: Constants, v: Variables, v': Variables, msgOps: Network.MessageOps) 
   {
     && v.WF(c)
     && msgOps.send.None?
@@ -123,26 +121,29 @@ module Host {
     && v' == v.(mp := v.mp + t)
   }
 
-  // Next Step JNF
-  datatype Step =
-    | PutStep
-    | GetStep
-    | SendHostStep
-    | RecvHostStep
+  // // Next Step JNF
+  // datatype Step =
+  //   | PutStep
+  //   | GetStep
+  //   | SendHostStep
+  //   | RecvHostStep
 
-  ghost predicate NextStep(c: Constants, v: Variables, v': Variables, msgOps: MessageOps, step: Step) 
-  {
-    match step {
-      case PutStep => HandlePut(c, v, v', msgOps)
-      case GetStep => HandleGet(c, v, v', msgOps)
-      case SendHostStep => SendToHost(c, v, v', msgOps)
-      case RecvHostStep => RecvFromHost(c, v, v', msgOps)
-    }
-  }
+  // ghost predicate NextStep(c: Constants, v: Variables, v': Variables, msgOps: Network.MessageOps, step: Step) 
+  // {
+  //   match step {
+  //     case PutStep => HandlePut(c, v, v', msgOps)
+  //     case GetStep => HandleGet(c, v, v', msgOps)
+  //     case SendHostStep => SendToHost(c, v, v', msgOps)
+  //     case RecvHostStep => RecvFromHost(c, v, v', msgOps)
+  //   }
+  // }
   
-  ghost predicate Next(c: Constants, v: Variables, v': Variables, msgOps: MessageOps)
+  ghost predicate Next(c: Constants, v: Variables, v': Variables, msgOps: Network.MessageOps, event: Event)
   {
-    exists step :: NextStep(c, v, v', msgOps, step)
+    || (exists key, value :: HandleGet(c, v, v', msgOps, key, value) && event == Event.Get(key, value))
+    || (exists key, value :: HandlePut(c, v, v', msgOps, key, value) && event == Event.Put(key, value))
+    || (exists sentKeys :: SendToHost(c, v, v', msgOps, sentKeys) && event == NoOp())
+    || (RecvFromHost(c, v, v', msgOps) && event == NoOp())
   }
 /*}*/
 }

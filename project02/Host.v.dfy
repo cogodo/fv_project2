@@ -42,7 +42,7 @@ module Host {
     totalHosts: nat
   )
   datatype Variables = Variables(
-    mp: map<int, int>
+    mp: imap<int, int>
   ) 
   {
     ghost predicate WF(c: Constants) {
@@ -54,7 +54,7 @@ module Host {
   ghost predicate Init(c: Constants, v: Variables)
   { 
     && v.WF(c)
-    && if c.id == 0 then forall i:int :: i in v.mp && v.mp[i] == 0 else v.mp == map[]
+    && if c.id == 0 then v.mp == ZeroMap() else v.mp == imap[]
   }
   
   // Other Host Actons Sending the (Get, Put, KeyValue) Messages
@@ -64,10 +64,11 @@ module Host {
   }
 
   // Handle a Get operation locally
-  ghost predicate HandleGet(c: Constants, v: Variables, v': Variables, key: int)
+  ghost predicate HandleGet(c: Constants, v: Variables, v': Variables, key: int, value: int)
   {
     && v.WF(c)
     && IdxInMap(v, key)
+    && v.mp[key] == value
     && v == v'// Get does not change anything about our state
   }
   
@@ -90,9 +91,9 @@ module Host {
     && sendMsg.dest != c.id 
     && sendMsg.dest < c.totalHosts
     && sendMsg.from == c.id
-    && IdxInMap(v, sendMsg.dest)
-    && v.mp[sendMsg.dest] == sendMsg.value
-    && v' == v.(mp := map i:int | i in v.mp && i != sendMsg.key :: v.mp[i])
+    && IdxInMap(v, sendMsg.key)
+    && v.mp[sendMsg.key] == sendMsg.value
+    && v' == v.(mp := imap i:int | i in v.mp && i != sendMsg.key :: v.mp[i])
   }
 
   // Receive a host's state, update/add our own map with new key, value
@@ -107,14 +108,14 @@ module Host {
     && recvMsg.from < c.totalHosts
     && recvMsg.dest == c.id
     && !(recvMsg.key in v.mp)
-    && var t := map[recvMsg.key := recvMsg.value];
+    && var t := imap[recvMsg.key := recvMsg.value];
     && v' == v.(mp := v.mp + t)
   }
   
   // Model the Host taking a next step with events (restrict)
   ghost predicate Next(c: Constants, v: Variables, v': Variables, msgOps: Network.MessageOps, event: Event)
   {
-    || (exists key, value :: HandleGet(c, v, v', key) && event == Event.Get(key, value))
+    || (exists key, value :: HandleGet(c, v, v', key, value) && event == Event.Get(key, value))
     || (exists key, value :: HandlePut(c, v, v', key, value) && event == Event.Put(key, value))
     || (SendToHost(c, v, v', msgOps) && event == NoOp())
     || (RecvFromHost(c, v, v', msgOps) && event == NoOp())

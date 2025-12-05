@@ -8,7 +8,8 @@ module RefinementProof refines RefinementObligation {
   ghost function ConstantsAbstraction(c: Constants) : AtomicKVSpec.Constants
   {
 /*{*/
-    var result:AtomicKVSpec.Constants :| true; result  // Replace with your definition
+    var result:AtomicKVSpec.Constants := AtomicKVSpec.Constants();
+    result
 /*}*/
   }
 
@@ -183,13 +184,15 @@ module RefinementProof refines RefinementObligation {
       case HostOwner(id) => (
 /*{*/
         // this branch should be true if host `id` thinks it owns `key`.
-        && true // Replace me
+        && id < |v.hosts|
+        && key in v.hosts[id].mp
 /*}*/
       )
       case MessageOwner(msg) => (
 /*{*/
         // this branch should be true if in-flight message `msg` thinks it owns `key`.
-        && true // Replace me
+        && msg in v.network.inFlightMessages
+        && msg.key == key
 /*}*/
       )
       )
@@ -202,12 +205,12 @@ module RefinementProof refines RefinementObligation {
       case HostOwner(id) =>
 /*{*/
         // this branch should be true if host `id`, which we know claims `key`, assigns it `value`.
-        && true // Replace me
+        && v.hosts[id].mp[key] == value
 /*}*/
       case MessageOwner(msg) =>
 /*{*/
         // this branch should be true if message `msg` which we know claims `key`, assigns it `value`.
-        && true // Replace me
+        && msg.value == value
 /*}*/
       )
   }
@@ -226,7 +229,7 @@ module RefinementProof refines RefinementObligation {
     ghost function ValidHosts() : set<HostId>  // Here to satiate finite-set heuristic
     {
 /*{*/
-      {}    // Construct a set comprehension that identifies the valid host ids as a finite set.
+      set i:HostId {:trigger i} | i < |v.hosts|  
 /*}*/
     }
 
@@ -238,7 +241,10 @@ module RefinementProof refines RefinementObligation {
 /*{*/
       // Replace with a map whose keys are all of the HostOwners in the system,
       // and the values are the partial maps maintained by each host.
-      map[]
+      var vh := ValidHosts();
+      var hosts_set := set i | i in vh :: HostOwner(i);
+      var host_mp := map ho | ho in hosts_set :: v.hosts[ho.id].mp;
+      host_mp
 /*}*/
     }
 
@@ -248,7 +254,11 @@ module RefinementProof refines RefinementObligation {
       // Replace with a map whose keys are all of the MessageOwners alive in
       // the system, and the values are the partial maps maintained by each
       // message.
-      map[]
+
+      var msg_set := set msg | msg in v.network.inFlightMessages :: MessageOwner(msg);
+      // construct the "imap" of the message's key and value
+      var msg_mp := map msg | msg in msg_set :: imap[msg.msg.key := msg.msg.value];
+      msg_mp
 /*}*/
     }
 
@@ -272,8 +282,8 @@ module RefinementProof refines RefinementObligation {
       requires IsFullAndDisjoint()
       requires v'.WF(c)
 /*{*/
-      requires true // replace with "network is unchanged"
-      requires true // replace with "all hosts' internal state is unchanged"
+      requires v.network == v'.network
+      requires v.hosts == v'.hosts
 /*}*/
       ensures PartitionLayer(c, v').AllPartitions() == AllPartitions()
     {
@@ -448,7 +458,9 @@ module RefinementProof refines RefinementObligation {
   ghost function VariablesAbstraction(c: Constants, v: Variables) : AtomicKVSpec.Variables
   {
 /*{*/
-    var result:AtomicKVSpec.Variables :| true; result  // Replace with your definition
+    // Create the imap from the host's imap HostMaps and msg's imap MessageMaps
+    
+    AtomicKVSpec.Variables(PartitionLayer(c, v).SpecView())
 /*}*/
   }
 

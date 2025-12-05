@@ -43,24 +43,23 @@ module DistributedSystem {
     && forall i:nat | i < |v.hosts| :: Host.Init(c.hosts[i], v.hosts[i])
   }
 
-  // TODO: Figure out how to repesent "Host Actions" with events (Get, Put) --> Noop is sending key,value pair
-  ghost predicate HostAction(c: Constants, v: Variables, v': Variables, hostid: HostId, event: Event)
+  // Demonstrate a Host taking an event action and all other hosts stay unchanged
+  ghost predicate HostAction(c: Constants, v: Variables, v': Variables, hostid: HostId, event: Event, msgOps: Network.MessageOps)
   {
     && v.WF(c)
     && v'.WF(c)
     && hostid < |c.hosts|
-    && (exists msgOps ::
-      && Host.NextStep(c.hosts[hostid], v.hosts[hostid], v'.hosts[hostid], msgOps, event)
-      && Network.Next(c.network, v.network, v'.network, msgOps))
+    && Host.Next(c.hosts[hostid], v.hosts[hostid], v'.hosts[hostid], msgOps, event)
+    // all other hosts stay unchanged
+    && (forall otherHost: HostId | otherHost < |c.hosts| && otherHost != hostid :: v.hosts[otherHost] == v'.hosts[otherHost])
   }
 
-  // TODO: ask Ivan?
-  // Represent next step --> step is now event tho....
+  // Demonstrate a Next for HostAction and Network being the same event
   ghost predicate Next(c: Constants, v: Variables, v': Variables, event: Event)
   {
     && v.WF(c)
     && v'.WF(c)
-    && exists hostid :: HostAction(c, v, v', hostid, event)
+    && (exists hostid, msgOps :: HostAction(c, v, v', hostid, event, msgOps) && Network.Next(c.network, v.network, v'.network, msgOps))
   }
 /*}*/
 }

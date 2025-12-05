@@ -54,7 +54,7 @@ module Host {
   
   // Initially, host 0 should own all the keys
   ghost predicate Init(c: Constants, v: Variables)
-  {
+  { 
     && v.WF(c)
     && if c.id == 0 then forall i:int :: i in v.mp && v.mp[i] == 0 else v.mp == map[]
   }
@@ -99,10 +99,11 @@ module Host {
     && msgOps.send.Some?
     && var sendMsg := msgOps.send.value;
     && sendMsg.KeyValue?
-    && sendMsg.idx != c.id 
-    && sendMsg.idx < c.totalHosts
-    && IdxInMap(v, sendMsg.idx)
-    && v.mp[sendMsg.idx] == sendMsg.value
+    && sendMsg.dest != c.id 
+    && sendMsg.dest < c.totalHosts
+    && sendMsg.from == c.id
+    && IdxInMap(v, sendMsg.dest)
+    && v.mp[sendMsg.dest] == sendMsg.value
     && v' == v.(mp := map i:int | i in v.mp && i != sendMsg.key :: v.mp[i])
   }
 
@@ -114,8 +115,9 @@ module Host {
     && msgOps.recv.Some?
     && var recvMsg := msgOps.recv.value;
     && recvMsg.KeyValue?
-    && recvMsg.idx != c.id
-    && recvMsg.idx < c.totalHosts
+    && recvMsg.from != c.id
+    && recvMsg.from < c.totalHosts
+    && recvMsg.dest == c.id
     && !(recvMsg.key in v.mp)
     && var t := map[recvMsg.key := recvMsg.value];
     && v' == v.(mp := v.mp + t)
